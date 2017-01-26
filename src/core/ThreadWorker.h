@@ -14,7 +14,6 @@
  * alias cannot be used inside slots/signals for
  * some reason (they are not connected with this way)
  */
-
 using Data = QMap<QString, QVariant>;
 
 namespace ThreadWorkerNS {
@@ -67,8 +66,8 @@ private slots:
   void use_data(QMap<QString, QVariant> data);
 
 private:
-  Worker worker;
-  QThread worker_thread;
+  Worker *worker;
+  QThread *worker_thread;
   std::function<void(Data)> usefunc;
   QMutex mutex;
 

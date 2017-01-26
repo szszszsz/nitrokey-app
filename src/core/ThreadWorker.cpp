@@ -18,15 +18,16 @@ void ThreadWorkerNS::Worker::fetch_data() {
 ThreadWorker::ThreadWorker(const std::function<Data()> &datafunc, const std::function<void(Data)> &usefunc,
                            QObject *parent) :
     QObject(parent),
-    worker(nullptr, datafunc),
+    worker(new ThreadWorkerNS::Worker(nullptr, datafunc)),
+    worker_thread(new QThread()),
     usefunc(usefunc) {
 
-  connect(&worker, SIGNAL(finished()), this, SLOT(worker_finished()), Qt::QueuedConnection);
-  connect(&worker_thread, SIGNAL(started()), &worker, SLOT(fetch_data()), Qt::QueuedConnection);
-  connect(&worker, SIGNAL(finished(QMap<QString, QVariant>)),
+  connect(worker, SIGNAL(finished()), this, SLOT(worker_finished()), Qt::QueuedConnection);
+  connect(worker_thread, SIGNAL(started()), worker, SLOT(fetch_data()), Qt::QueuedConnection);
+  connect(worker, SIGNAL(finished(QMap<QString, QVariant>)),
           this, SLOT(use_data(QMap<QString, QVariant>)), Qt::QueuedConnection);
-  worker.moveToThread(&worker_thread);
-  worker_thread.start();
+  worker->moveToThread(worker_thread);
+  worker_thread->start();
 }
 
 ThreadWorker::~ThreadWorker() {
@@ -43,7 +44,7 @@ void ThreadWorker::use_data(QMap<QString, QVariant> data) {
 }
 
 void ThreadWorker::stop_thread() {
-  worker_thread.quit();
-  worker_thread.wait();
+  worker_thread->quit();
+  worker_thread->wait();
 }
 
