@@ -9,6 +9,7 @@
 #include <QMap>
 #include <functional>
 #include <QMutexLocker>
+#include <QDebug>
 
 
 //typedef QMap<QString, QVariant> Data;
@@ -18,8 +19,8 @@
 namespace ThreadWorkerNS {
   class Worker : public QObject
   {
-    Q_DISABLE_COPY(Worker)
     Q_OBJECT
+    Q_DISABLE_COPY(Worker)
     public:
     Worker(QObject *parent, const std::function<QMap<QString, QVariant>()> &datafunc) :
         QObject(parent),
@@ -29,11 +30,13 @@ namespace ThreadWorkerNS {
       void fetch_data() {
         QMutexLocker lock(&mutex);
         auto data = datafunc();
+        emit finished();
         emit finished(data);
       }
 
     signals:
       void finished(QMap<QString, QVariant> data);
+      void finished();
     private:
       QMutex mutex;
       std::function<QMap<QString, QVariant>()> datafunc;
@@ -58,10 +61,13 @@ public:
         usefunc(usefunc){
 
 
-    connect(&worker_thread, SIGNAL(started()), &worker, SLOT(fetch_data()));
-    connect(&worker, SIGNAL(finished(QMap<QString, QVariant>) ), this, SLOT( use_data(QMap<QString, QVariant>) ));
+    connect(&worker, SIGNAL(finished()), this, SLOT(worker_finished()), Qt::QueuedConnection);
+    connect(&worker_thread, SIGNAL(started()), &worker, SLOT(fetch_data()), Qt::QueuedConnection);
+    connect(&worker, SIGNAL(finished(QMap<QString, QVariant>) ),
+            this, SLOT( use_data(QMap<QString, QVariant>) ), Qt::QueuedConnection);
     worker.moveToThread(&worker_thread);
     worker_thread.start();
+    mutex.lock();
   }
 
   ~ThreadWorker(){
@@ -73,15 +79,27 @@ public:
     worker_thread.wait();
   }
 
+  void wait(){
+//    QMutexLocker lock(&mutex);
+    mutex.lock();
+    mutex.unlock();
+  }
+
   private slots:
+  void worker_finished(){
+    qDebug() << "worker finished";
+  };
   void use_data(QMap<QString, QVariant> data){
+//    QMutexLocker lock(&mutex);
     usefunc(data);
+    mutex.unlock();
   };
 
 private:
   Worker worker;
   QThread worker_thread;
   std::function<void(QMap<QString, QVariant>)> usefunc;
+  QMutex mutex;
 };
 
 

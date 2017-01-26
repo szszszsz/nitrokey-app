@@ -73,20 +73,20 @@ void DialogChangePassword::UpdatePasswordRetry() {
 //  }
 
     ui->retryCount->setText("...");
-  ThreadWorker tw(
+  ThreadWorker *tw = new ThreadWorker(
     []() -> QMap<QString, QVariant> {
       QMap<QString, QVariant> data;
       data["test"] = libada::i()->getAdminPasswordRetryCount();
 //      data = libada::i()->getAdminPasswordRetryCount();
       return data;
     },
-    [this](QMap<QString, QVariant> data){
+    [&](QMap<QString, QVariant> data){
 //      ui->retryCount->setText(QString::number(data.toInt()));
       ui->retryCount->setText(QString::number(data["test"].toInt()));
       ui->retryCount->repaint();
       qDebug() << "say HI!";
-    }
-  );
+    },this);
+//  tw->wait();
 
 //  if (retryCount == 0) {
 //    csApplet()->warningBox(noTrialsLeft);
