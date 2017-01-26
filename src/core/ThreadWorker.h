@@ -13,7 +13,7 @@
 
 
 //typedef QMap<QString, QVariant> Data;
-//using Data = QVariant; //< QMap<QString, QVariant> >;
+using Data = QMap<QString, QVariant>;
 //Q_DECLARE_METATYPE(Data)
 
 namespace ThreadWorkerNS {
@@ -22,7 +22,7 @@ namespace ThreadWorkerNS {
     Q_OBJECT
     Q_DISABLE_COPY(Worker)
     public:
-    Worker(QObject *parent, const std::function<QMap<QString, QVariant>()> &datafunc) :
+    Worker(QObject *parent, const std::function<Data()> &datafunc) :
         QObject(parent),
         datafunc(datafunc) {}
 
@@ -39,23 +39,20 @@ namespace ThreadWorkerNS {
       void finished();
     private:
       QMutex mutex;
-      std::function<QMap<QString, QVariant>()> datafunc;
+      std::function<Data()> datafunc;
     };
 
 }
-//Q_DECLARE_METATYPE(ThreadWorkerNS::Data)
-
 
 class ThreadWorker : public QObject {
 using Worker = ThreadWorkerNS::Worker;
-//using Data = ThreadWorkerNS::Data;
 Q_OBJECT
 Q_DISABLE_COPY(ThreadWorker)
 
 public:
 
-  ThreadWorker(const std::function<QMap<QString, QVariant>()> &datafunc,
-               const std::function<void(QMap<QString, QVariant>)> &usefunc, QObject *parent=nullptr) :
+  ThreadWorker(const std::function<Data()> &datafunc,
+               const std::function<void(Data)> &usefunc, QObject *parent=nullptr) :
       QObject(parent),
         worker(nullptr, datafunc),
         usefunc(usefunc){
@@ -89,7 +86,7 @@ public:
 private:
   Worker worker;
   QThread worker_thread;
-  std::function<void(QMap<QString, QVariant>)> usefunc;
+  std::function<void(Data)> usefunc;
   QMutex mutex;
 };
 
