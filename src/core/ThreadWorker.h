@@ -9,6 +9,12 @@
 #include <QVariant>
 #include <QMap>
 
+/***
+ * declaring data transporting type
+ * alias cannot be used inside slots/signals for
+ * some reason (they are not connected with this way)
+ */
+
 using Data = QMap<QString, QVariant>;
 
 namespace ThreadWorkerNS {
@@ -41,6 +47,15 @@ class ThreadWorker : public QObject {
   Q_DISABLE_COPY(ThreadWorker)
 
 public:
+  /**
+   * A class for non-blocking update of UI with data requested from device.
+   * @param datafunc returns Data, instructions for requesting data from device,
+   * will be run on separate thread
+   * @param usefunc accepts Data, instructions for updating GUI with data received
+   * from worker thread
+   * @param parent pointer to parent - this will cause object destruction
+   * on parent's destruction
+   */
   ThreadWorker(const std::function<Data()> &datafunc,
                const std::function<void(Data)> &usefunc,
                QObject *parent = nullptr);
