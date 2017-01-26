@@ -175,7 +175,7 @@ bool DialogChangePassword::_changePassword(void) {
     bool result = false;
   PasswordKind k = kind;
   ThreadWorker *tw = new ThreadWorker(
-      [k, PasswordString, PasswordStringNew, this]() -> Data {
+      [k, PasswordString, PasswordStringNew]() -> Data {
         Data data;
         try {
           switch (k) {
