@@ -10,14 +10,18 @@
 #include <functional>
 #include <QMutexLocker>
 
+
+//typedef QMap<QString, QVariant> Data;
+//using Data = QVariant; //< QMap<QString, QVariant> >;
+//Q_DECLARE_METATYPE(Data)
+
 namespace ThreadWorkerNS {
-  using Data = QMap<QString, QVariant>;
   class Worker : public QObject
   {
     Q_DISABLE_COPY(Worker)
     Q_OBJECT
     public:
-    Worker(QObject *parent, const std::function<Data()> &datafunc) :
+    Worker(QObject *parent, const std::function<QMap<QString, QVariant>()> &datafunc) :
         QObject(parent),
         datafunc(datafunc) {}
 
@@ -29,29 +33,33 @@ namespace ThreadWorkerNS {
       }
 
     signals:
-      void finished(Data data);
+      void finished(QMap<QString, QVariant> data);
     private:
       QMutex mutex;
-      std::function<Data()> datafunc;
+      std::function<QMap<QString, QVariant>()> datafunc;
     };
+
 }
+//Q_DECLARE_METATYPE(ThreadWorkerNS::Data)
 
 
 class ThreadWorker : public QObject {
 using Worker = ThreadWorkerNS::Worker;
-using Data = ThreadWorkerNS::Data;
+//using Data = ThreadWorkerNS::Data;
 Q_OBJECT
 Q_DISABLE_COPY(ThreadWorker)
 
 public:
 
-  ThreadWorker(const std::function<Data()> &datafunc,
-               const std::function<void(Data)> &usefunc, QObject *parent=nullptr) :
+  ThreadWorker(const std::function<QMap<QString, QVariant>()> &datafunc,
+               const std::function<void(QMap<QString, QVariant>)> &usefunc, QObject *parent=nullptr) :
       QObject(parent),
-        worker(this, datafunc),
+        worker(nullptr, datafunc),
         usefunc(usefunc){
+
+
     connect(&worker_thread, SIGNAL(started()), &worker, SLOT(fetch_data()));
-    connect(&worker, SIGNAL(finished(Data)), this, SLOT(use_data(Data)));
+    connect(&worker, SIGNAL(finished(QMap<QString, QVariant>) ), this, SLOT( use_data(QMap<QString, QVariant>) ));
     worker.moveToThread(&worker_thread);
     worker_thread.start();
   }
@@ -59,18 +67,21 @@ public:
   ~ThreadWorker(){
     stop_thread();
   }
-  void use_data(Data data){
-    usefunc(data);
-  };
 
   void stop_thread(){
     worker_thread.quit();
     worker_thread.wait();
   }
+
+  private slots:
+  void use_data(QMap<QString, QVariant> data){
+    usefunc(data);
+  };
+
 private:
   Worker worker;
   QThread worker_thread;
-  std::function<void(Data)> usefunc;
+  std::function<void(QMap<QString, QVariant>)> usefunc;
 };
 
 

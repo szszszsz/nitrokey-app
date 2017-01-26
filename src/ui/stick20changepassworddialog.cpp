@@ -23,6 +23,7 @@
 #include "ui_stick20changepassworddialog.h"
 #include "libada.h"
 #include "libnitrokey/include/NitrokeyManager.h"
+#include "src/core/ThreadWorker.h"
 using nm = nitrokey::NitrokeyManager;
 
 DialogChangePassword::DialogChangePassword(QWidget *parent, PasswordKind _kind)
@@ -41,11 +42,11 @@ DialogChangePassword::DialogChangePassword(QWidget *parent, PasswordKind _kind)
 
   ui->lineEdit_OldPW->setFocus();
   setModal(true);
+
 }
 
 DialogChangePassword::~DialogChangePassword() { delete ui; }
 
-#include "src/core/ThreadWorker.h"
 
 void DialogChangePassword::UpdatePasswordRetry() {
   QString noTrialsLeft;
@@ -73,14 +74,17 @@ void DialogChangePassword::UpdatePasswordRetry() {
 
     ui->retryCount->setText("...");
   ThreadWorker tw(
-    []() -> ThreadWorkerNS::Data {
-      ThreadWorkerNS::Data data;
+    []() -> QMap<QString, QVariant> {
+      QMap<QString, QVariant> data;
       data["test"] = libada::i()->getAdminPasswordRetryCount();
+//      data = libada::i()->getAdminPasswordRetryCount();
       return data;
     },
-    [this](ThreadWorkerNS::Data data){
+    [this](QMap<QString, QVariant> data){
+//      ui->retryCount->setText(QString::number(data.toInt()));
       ui->retryCount->setText(QString::number(data["test"].toInt()));
       ui->retryCount->repaint();
+      qDebug() << "say HI!";
     }
   );
 
