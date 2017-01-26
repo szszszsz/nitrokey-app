@@ -77,7 +77,6 @@ void DialogChangePassword::UpdatePasswordRetry() {
     []() -> QMap<QString, QVariant> {
       QMap<QString, QVariant> data;
       data["test"] = libada::i()->getAdminPasswordRetryCount();
-//      data = libada::i()->getAdminPasswordRetryCount();
       return data;
     },
     [&](QMap<QString, QVariant> data){
@@ -85,8 +84,7 @@ void DialogChangePassword::UpdatePasswordRetry() {
       ui->retryCount->setText(QString::number(data["test"].toInt()));
       ui->retryCount->repaint();
       qDebug() << "say HI!";
-    },this);
-//  tw->wait();
+    }, this);
 
 //  if (retryCount == 0) {
 //    csApplet()->warningBox(noTrialsLeft);

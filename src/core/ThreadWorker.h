@@ -60,14 +60,12 @@ public:
         worker(nullptr, datafunc),
         usefunc(usefunc){
 
-
     connect(&worker, SIGNAL(finished()), this, SLOT(worker_finished()), Qt::QueuedConnection);
     connect(&worker_thread, SIGNAL(started()), &worker, SLOT(fetch_data()), Qt::QueuedConnection);
     connect(&worker, SIGNAL(finished(QMap<QString, QVariant>) ),
             this, SLOT( use_data(QMap<QString, QVariant>) ), Qt::QueuedConnection);
     worker.moveToThread(&worker_thread);
     worker_thread.start();
-    mutex.lock();
   }
 
   ~ThreadWorker(){
@@ -79,20 +77,13 @@ public:
     worker_thread.wait();
   }
 
-  void wait(){
-//    QMutexLocker lock(&mutex);
-    mutex.lock();
-    mutex.unlock();
-  }
-
   private slots:
   void worker_finished(){
     qDebug() << "worker finished";
   };
   void use_data(QMap<QString, QVariant> data){
-//    QMutexLocker lock(&mutex);
+    QMutexLocker lock(&mutex);
     usefunc(data);
-    mutex.unlock();
   };
 
 private:
