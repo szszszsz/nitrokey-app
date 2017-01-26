@@ -45,38 +45,54 @@ DialogChangePassword::DialogChangePassword(QWidget *parent, PasswordKind _kind)
 
 DialogChangePassword::~DialogChangePassword() { delete ui; }
 
+#include "src/core/ThreadWorker.h"
+
 void DialogChangePassword::UpdatePasswordRetry() {
   QString noTrialsLeft;
   int retryCount = 0;
   // update password retry values
 
-  switch (kind) {
-    case PasswordKind::USER:
-    retryCount = libada::i()->getUserPasswordRetryCount();
-    noTrialsLeft = tr("Unfortunately you have no more trials left. Please use 'Reset User PIN' "
-                      "option from menu to reset password");
-    break;
-    case PasswordKind::ADMIN:
-    case PasswordKind::RESET_USER:
-    retryCount = libada::i()->getAdminPasswordRetryCount();
-    noTrialsLeft = tr("Unfortunately you have no more trials left. Please check instruction how to "
-                      "reset Admin password.");
-    break;
-    case PasswordKind::UPDATE:
-    retryCount = 99;
-    ui->retryCount->hide();
-    ui->retryCountLabel->hide();
-    break;
-  }
-  if (retryCount == 0) {
-    csApplet()->warningBox(noTrialsLeft);
-    QString cssRed = "QLabel {color: red; font-weight: bold}";
-    ui->retryCount->setStyleSheet(cssRed);
-    ui->retryCountLabel->setStyleSheet(cssRed);
-    done(true);
-  }
-  ui->retryCount->setText(QString::number(retryCount));
-  ui->retryCount->repaint();
+//  switch (kind) {
+//    case PasswordKind::USER:
+//    retryCount = libada::i()->getUserPasswordRetryCount();
+//    noTrialsLeft = tr("Unfortunately you have no more trials left. Please use 'Reset User PIN' "
+//                      "option from menu to reset password");
+//    break;
+//    case PasswordKind::ADMIN:
+//    case PasswordKind::RESET_USER:
+//    retryCount = libada::i()->getAdminPasswordRetryCount();
+//    noTrialsLeft = tr("Unfortunately you have no more trials left. Please check instruction how to "
+//                      "reset Admin password.");
+//    break;
+//    case PasswordKind::UPDATE:
+//    retryCount = 99;
+//    ui->retryCount->hide();
+//    ui->retryCountLabel->hide();
+//    break;
+//  }
+
+    ui->retryCount->setText("...");
+  ThreadWorker tw(
+    []() -> ThreadWorkerNS::Data {
+      ThreadWorkerNS::Data data;
+      data["test"] = libada::i()->getAdminPasswordRetryCount();
+      return data;
+    },
+    [this](ThreadWorkerNS::Data data){
+      ui->retryCount->setText(QString::number(data["test"].toInt()));
+      ui->retryCount->repaint();
+    }
+  );
+
+//  if (retryCount == 0) {
+//    csApplet()->warningBox(noTrialsLeft);
+//    QString cssRed = "QLabel {color: red; font-weight: bold}";
+//    ui->retryCount->setStyleSheet(cssRed);
+//    ui->retryCountLabel->setStyleSheet(cssRed);
+//    done(true);
+//  }
+//  ui->retryCount->setText(QString::number(retryCount));
+//  ui->retryCount->repaint();
 }
 
 void DialogChangePassword::UI_deviceNotInitialized() const { csApplet()->warningBox(tr("Device is not yet initialized. Please try again later.")); }

@@ -59,6 +59,7 @@ SET(moc_headers
     src/GUI/Clipboard.h
     src/GUI/Authentication.h
     src/GUI/StorageActions.h
+    src/core/ThreadWorker.h
 )
 
 
