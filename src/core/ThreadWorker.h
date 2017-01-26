@@ -74,5 +74,17 @@ private:
   void stop_thread();
 };
 
+//template:
+//ThreadWorker *tw = new ThreadWorker(
+//    []() -> Data {
+//      Data data;
+//
+//      return data;
+//    },
+//    [this](Data data){
+//
+//    }, this);
+
+
 
 #endif //NITROKEYAPP_THREADWORKER_H
