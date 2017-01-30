@@ -1286,20 +1286,6 @@ void MainWindow::on_counterEdit_editingFinished() {
   }
 }
 
-char *MainWindow::getFactoryResetMessage(int retCode) {
-  switch (retCode) {
-//  case CMD_STATUS_OK:
-//    return strdup("Factory reset was successful.");
-//    break;
-//  case CMD_STATUS_WRONG_PASSWORD:
-//    return strdup("Wrong Pin. Please try again.");
-//    break;
-  default:
-    return strdup("Unknown error.");
-    break;
-  }
-}
-
 int MainWindow::factoryReset() {
   while (true){
     const std::string &password = auth_admin.getPassword();

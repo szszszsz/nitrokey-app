@@ -106,7 +106,7 @@ public slots:
   void startAboutDialog();
   void startConfiguration();
   void PWS_Clicked_EnablePWSAccess();
-  char *getFactoryResetMessage(int retCode);
+
   int factoryReset();
   void getTOTPDialog(int slot);
   void getHOTPDialog(int slot);
