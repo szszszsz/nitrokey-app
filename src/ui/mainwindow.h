@@ -122,6 +122,7 @@ public slots:
     void PWS_unlocked();
     void PWS_slot_saved(int slot_no);
     void DeviceLocked();
+    void FactoryReset();
     void PWS_progress(int p);
     void OTP_slot_write(int slot_no, bool isHOTP);
 
