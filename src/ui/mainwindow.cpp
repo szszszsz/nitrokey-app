@@ -105,6 +105,7 @@ MainWindow::MainWindow(QWidget *parent)
   connect(this, SIGNAL(PWS_slot_saved(int)), libada::i().get(), SLOT(on_PWS_save(int)));
   connect(this, SIGNAL(DeviceDisconnected()), this, SLOT(on_DeviceDisconnected()));
   connect(this, SIGNAL(DeviceDisconnected()), libada::i().get(), SLOT(on_DeviceDisconnect()));
+  connect(this, SIGNAL(DeviceConnected()), this, SLOT(on_DeviceConnected()));
 
   ui->setupUi(this);
   ui->tabWidget->setCurrentIndex(0); // Set first tab active
@@ -1297,4 +1298,18 @@ void MainWindow::on_DeviceDisconnected() {
     this->close();
     csApplet()->messageBox(tr("Closing window due to device disconnection"));
   }
+}
+
+void MainWindow::on_DeviceConnected() {
+//TODO show warnings for storage
+
+//    if (TRUE == StickNotInitated) {
+//      if (FALSE == StickNotInitated_DontAsk)
+//          csApplet()->warningBox(tr("Warning: Encrypted volume is not secure,\nSelect \"Initialize "
+//                                            "device\" option from context menu."));
+//    }
+//    if (FALSE == StickNotInitated && TRUE == SdCardNotErased) {
+//      if (FALSE == SdCardNotErased_DontAsk)
+//          csApplet()->warningBox(tr("Warning: Encrypted volume is not secure,\nSelect \"Initialize "
+//                                            "storage with random data\""));
 }
