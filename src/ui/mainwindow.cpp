@@ -1300,16 +1300,37 @@ void MainWindow::on_DeviceDisconnected() {
   }
 }
 
+#include "src/core/ThreadWorker.h"
 void MainWindow::on_DeviceConnected() {
-//TODO show warnings for storage
+//TODO show warnings for storage (test)
 
-//    if (TRUE == StickNotInitated) {
-//      if (FALSE == StickNotInitated_DontAsk)
-//          csApplet()->warningBox(tr("Warning: Encrypted volume is not secure,\nSelect \"Initialize "
-//                                            "device\" option from context menu."));
-//    }
-//    if (FALSE == StickNotInitated && TRUE == SdCardNotErased) {
-//      if (FALSE == SdCardNotErased_DontAsk)
-//          csApplet()->warningBox(tr("Warning: Encrypted volume is not secure,\nSelect \"Initialize "
-//                                            "storage with random data\""));
+ThreadWorker *tw = new ThreadWorker(
+    []() -> Data {
+      Data data;
+      auto storageDeviceConnected = libada::i()->isStorageDeviceConnected();
+      data["storage_connected"] = storageDeviceConnected;
+      if (storageDeviceConnected){
+        auto s = nm::instance()->get_status_storage();
+        data["initiated"] = s.StickKeysNotInitiated;
+        data["initiated_ask"] = false; //FIXME select proper variable s.NewSDCardFound_u8
+        data["erased"] = s.SDFillWithRandomChars_u8;
+        data["erased_ask"] = false; //FIXME s.NewSDCardFound_u8
+      }
+      return data;
+    },
+    [this](Data data) {
+      if(!data["storage_connected"].toBool()) return;
+
+      if (!data["initiated"].toBool()) {
+        if (!data["initiated_ask"].toBool())
+          csApplet()->warningBox(tr("Warning: Encrypted volume is not secure,\nSelect \"Initialize "
+                                        "device\" option from context menu."));
+      }
+      if (data["initiated"].toBool() && !data["erased"].toBool()) {
+        if (!data["erased_ask"].toBool())
+          csApplet()->warningBox(tr("Warning: Encrypted volume is not secure,\nSelect \"Initialize "
+                                        "storage with random data\""));
+      }
+      }, this);
+
 }
