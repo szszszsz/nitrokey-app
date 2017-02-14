@@ -237,6 +237,11 @@ ADD_EXECUTABLE(nitrokey-app WIN32 ${GUI_TYPE}
 INSTALL(TARGETS nitrokey-app DESTINATION bin)
 
 add_definitions(-D_WIN32 -DSTATICLIB)
+add_definitions(-Wl,-subsystem,windows -mthreads)
+add_definitions(-L/media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/platforms )
+add_definitions(/media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/platforms/libqwindows.a )
+
+link_directories(/media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/platforms)
 
 TARGET_LINK_LIBRARIES(nitrokey-app
   ${QT_LIBRARIES}
