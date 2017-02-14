@@ -44,6 +44,9 @@ void configureTranslator(const QApplication &a, const QCommandLineParser &parser
 void configureRandomGenerator();
 
 int main(int argc, char *argv[]) {
+  QCoreApplication::addLibraryPath("./");
+  QCoreApplication::addLibraryPath("./platforms/");
+
   qRegisterMetaType<QMap<QString, QVariant>>();
   issue_43_workaround();
 

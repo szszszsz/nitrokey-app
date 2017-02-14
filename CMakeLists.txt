@@ -236,6 +236,8 @@ ADD_EXECUTABLE(nitrokey-app WIN32 ${GUI_TYPE}
 
 INSTALL(TARGETS nitrokey-app DESTINATION bin)
 
+add_definitions(-D_WIN32 -DSTATICLIB)
+
 TARGET_LINK_LIBRARIES(nitrokey-app
   ${QT_LIBRARIES}
   ${EXTRA_LIBS}
