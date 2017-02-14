@@ -1,6 +1,16 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.1.0 FATAL_ERROR)
 cmake_policy(SET CMP0043 OLD) # cmake --help-policy CMP0043
 
+
+
+
+
+
+
+
+
+
+
 PROJECT(NitrokeyApp CXX)
 SET(PROJECT_VERSION "1.0-alpha")
 set(CMAKE_CXX_STANDARD 14)
@@ -116,9 +126,9 @@ SET(qrc_files
 
 # create translation files to include into resource file
 # remember to add new translations files there
-find_package(Qt5LinguistTools)
-file(GLOB i18n_files "i18n/*.ts")
-qt5_create_translation(i18n_resources ${i18n_files})
+#find_package(Qt5LinguistTools)
+#file(GLOB i18n_files "i18n/*.ts")
+#qt5_create_translation(i18n_resources ${i18n_files})
 
 # preprocess ui files
 QT5_WRAP_UI(ui_output ${ui_files})
@@ -134,20 +144,22 @@ IF (WIN32)
 ELSEIF(APPLE)
 ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
     SET( platform_specific_sources ${SRCDIR}/systemutils.cpp)
-
-    INCLUDE_DIRECTORIES(
-      ${SRCDIR}
-      ${UTILSDIR}
-      ${SRCUIDIR}
-      ${PROJECT_SOURCE_DIR}
-      ${QT_INCLUDE_DIR}
-    )
-
-    LINK_DIRECTORIES(
-      ${QT_LIBRARY_DIR}
-    )
-
 ENDIF () # WIN32
+
+INCLUDE_DIRECTORIES(
+        ${SRCDIR}
+        ${UTILSDIR}
+        ${SRCUIDIR}
+        ${PROJECT_SOURCE_DIR}
+        ${QT_INCLUDE_DIR}
+)
+
+LINK_DIRECTORIES(
+        ${QT_LIBRARY_DIR}
+)
+
+include_directories(hidapi)
+
 
 # c/cpp sources
 SET(nitrokey_app_sources
@@ -214,7 +226,7 @@ IF(NOT WIN32)
 ENDIF () # NOT WIN32
 
 
-ADD_EXECUTABLE(nitrokey-app ${GUI_TYPE}
+ADD_EXECUTABLE(nitrokey-app WIN32 ${GUI_TYPE}
   ${nitrokey_app_sources}
   ${moc_output}
   ${ui_output}
