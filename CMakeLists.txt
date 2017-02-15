@@ -2,13 +2,10 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.1.0 FATAL_ERROR)
 cmake_policy(SET CMP0043 OLD) # cmake --help-policy CMP0043
 
 
-
-
-
-
-
-
-
+# Find includes in corresponding build directories
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+# Instruct CMake to run moc automatically when needed.
+set(CMAKE_AUTOMOC ON)
 
 
 PROJECT(NitrokeyApp CXX)
@@ -82,60 +79,11 @@ SET(SRCDIR ${ROOTDIR}/src)
 SET(SRCUIDIR ${SRCDIR}/ui)
 SET(UTILSDIR ${SRCDIR}/utils)
 
-# Moc files
-SET(moc_headers
-    ${SRCUIDIR}/aboutdialog.h
-    ${SRCUIDIR}/mainwindow.h
-    ${SRCUIDIR}/pindialog.h
-#    ${SRCUIDIR}/securitydialog.h
-    ${SRCUIDIR}/stick20changepassworddialog.h
-    ${SRCUIDIR}/stick20debugdialog.h
-    ${SRCUIDIR}/stick20hiddenvolumedialog.h
-    ${SRCUIDIR}/stick20lockfirmwaredialog.h
-    ${SRCUIDIR}/stick20responsedialog.h
-    ${SRCUIDIR}/stick20-response-task.h
-    ${SRCUIDIR}/stick20updatedialog.h
-    ${SRCDIR}/GUI/Tray.h
-    src/GUI/Clipboard.h
-    src/GUI/Authentication.h
-    src/GUI/StorageActions.h
-    src/core/ThreadWorker.h
-    src/libada.h
-)
-
-
-# Ui files
-SET(ui_files
-    ${UIDIR}/aboutdialog.ui
-    ${UIDIR}/mainwindow.ui
-    ${UIDIR}/pindialog.ui
-#    ${UIDIR}/securitydialog.ui
-    ${UIDIR}/stick20changepassworddialog.ui
-    ${UIDIR}/stick20debugdialog.ui
-    ${UIDIR}/stick20hiddenvolumedialog.ui
-    ${UIDIR}/stick20lockfirmwaredialog.ui
-    ${UIDIR}/stick20responsedialog.ui
-    ${UIDIR}/stick20updatedialog.ui
-)
-
 
 # Resource files
 SET(qrc_files
-    resources.qrc
-)
-
-# create translation files to include into resource file
-# remember to add new translations files there
-#find_package(Qt5LinguistTools)
-#file(GLOB i18n_files "i18n/*.ts")
-#qt5_create_translation(i18n_resources ${i18n_files})
-
-# preprocess ui files
-QT5_WRAP_UI(ui_output ${ui_files})
-
-# meta object compliation(moc)
-QT5_WRAP_CPP(moc_output ${moc_headers})
-
+        resources.qrc
+        )
 # resources files
 QT5_ADD_RESOURCES(resources_ouput ${qrc_files})
 
@@ -154,12 +102,7 @@ INCLUDE_DIRECTORIES(
         ${QT_INCLUDE_DIR}
 )
 
-LINK_DIRECTORIES(
-        ${QT_LIBRARY_DIR}
-)
-
 include_directories(hidapi)
-
 
 # c/cpp sources
 SET(nitrokey_app_sources
@@ -228,32 +171,43 @@ ENDIF () # NOT WIN32
 
 ADD_EXECUTABLE(nitrokey-app WIN32 ${GUI_TYPE}
   ${nitrokey_app_sources}
-  ${moc_output}
-  ${ui_output}
-#  ${i18n_resources}
   ${resources_ouput}
 )
 
 INSTALL(TARGETS nitrokey-app DESTINATION bin)
 
-add_definitions(-D_WIN32 -DSTATICLIB)
-add_definitions(-Wl,-subsystem,windows -mthreads)
-add_definitions(-L/media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/platforms )
-add_definitions(/media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/platforms/libqwindows.a )
-
-link_directories(/media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/platforms)
+IF(WIN32)
+set(MXELIBS
+        pcre16 png16 z harfbuzz
+        kernel32 user32 gdi32 winspool comdlg32 advapi32 shell32 ole32 oleaut32 uuid odbc32 odbccp32
+        gdi32 comdlg32 oleaut32 imm32 opengl32 png16 harfbuzz ole32 uuid ws2_32 advapi32 shell32 user32 kernel32 mpr winmm z pcre16 shell32 uxtheme dwmapi
+)
+ENDIF()
 
 TARGET_LINK_LIBRARIES(nitrokey-app
-  ${QT_LIBRARIES}
-  ${EXTRA_LIBS}
-  ${NK_LIB}
-  ${platform_specific_libs}
-)
+                    ${MXELIBS}
+                    ${EXTRA_LIBS}
+                    ${NK_LIB}
+                    ${platform_specific_libs}
+                    Qt5::Widgets Qt5::Core Qt5::Gui
+                    ${MXELIBS}
+        )
 
-qt5_use_modules( nitrokey-app Core Gui Widgets)
 
-
-
+IF(WIN32) # Check if we are on Windows
+    SET(QMFLAGS "-Wl,-s -Wl,-subsystem,windows -mthreads -L/media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/lib /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/lib/libqtmain.a -lsetupapi /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/lib/libQt5Widgets.a -luxtheme -L/media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/platforms /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/platforms/libqwindows.a -ldwmapi -lwinspool /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/lib/libQt5EventDispatcherSupport.a /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/lib/libQt5AccessibilitySupport.a /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/lib/libQt5FontDatabaseSupport.a /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/lib/libQt5ThemeSupport.a -lcairo -lgobject-2.0 -lfontconfig -lusp10 -lmsimg32 -lpixman-1 -lffi -lexpat -lfreetype -lbz2 -lharfbuzz_too -lglib-2.0 -lshlwapi -lpcre -lintl -liconv -L/media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/imageformats /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/imageformats/libqgif.a /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/imageformats/libqico.a /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/plugins/imageformats/libqjpeg.a /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/lib/libQt5Gui.a -lgdi32 -lcomdlg32 -loleaut32 -limm32 -lopengl32 -lpng16 -lharfbuzz /media/sz/compilation/mxe/usr/i686-w64-mingw32.static.posix/qt5/lib/libQt5Core.a -lole32 -luuid -lws2_32 -ladvapi32 -lshell32 -luser32 -lkernel32 -lmpr -lwinmm -lz -lpcre16 -ljpeg release/appico_res.o")
+    if(MSVC) # Check if we are using the Visual Studio compiler
+         set_target_properties(nitrokey-app PROPERTIES LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS")
+    elseif(CMAKE_COMPILER_IS_GNUCXX)
+         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QMFLAGS}") # Not tested
+    else()
+        message(SEND_ERROR "You are using an unsupported Windows compiler! (Not MSVC or GCC)")
+    endif()
+elseif(UNIX)
+    # Nothing special required
+else()
+    message(SEND_ERROR "You are on an unsupported platform! (Not Win32 or Unix)")
+ENDIF()
 
 
 # Packaging
