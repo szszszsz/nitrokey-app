@@ -14,9 +14,21 @@ namespace Ui {
     class Tray;
 }
 
+#include "libnitrokey/include/NitrokeyManager.h"
+#include <QMutex>
+
 class tray_Worker : public QObject
 {
 Q_OBJECT
+
+public:
+  QMutex mutex;
+  struct{
+    bool PWS_available;
+    bool PWS_unlocked;
+    bool noUserPasswordRetryAvailable;
+    nitrokey::stick20::GetDeviceStatus::ResponsePayload storage_status;
+  } data;
 
 public slots:
     void doWork();
@@ -115,6 +127,8 @@ private:
     QAction *Stick20ActionResetUserPassword;
 
   void destroyThread();
+
+  std::shared_ptr<tray_Worker> worker;
 };
 
 

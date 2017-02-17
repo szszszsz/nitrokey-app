@@ -289,7 +289,15 @@ void Tray::initActionsForStick20() {
 std::shared_ptr<QThread> thread_tray_populateOTP;
 
 void tray_Worker::doWork() {
-  auto passwordSafeUnlocked = libada::i()->isPasswordSafeUnlocked();
+  using nm = nitrokey::NitrokeyManager;
+  QMutexLocker lock(&mutex);
+  if (!libada::i()->isDeviceConnected()) return;
+  data.storage_status = nm::instance()->get_status_storage();
+  data.noUserPasswordRetryAvailable = libada::i()->getUserPasswordRetryCount() == 0;
+  data.PWS_unlocked = libada::i()->isPasswordSafeUnlocked();
+  data.PWS_available = libada::i()->isPasswordSafeAvailable();
+
+  auto passwordSafeUnlocked = data.PWS_unlocked;
   const auto total = TOTP_SLOT_COUNT+HOTP_SLOT_COUNT+
       (passwordSafeUnlocked?PWS_SLOT_COUNT:0)+1;
   int p = 0;
@@ -329,20 +337,21 @@ void Tray::generatePasswordMenu() {
     destroyThread();
   }
   thread_tray_populateOTP = std::make_shared<QThread>();
-  tray_Worker *worker = new tray_Worker; //FIXME leak
+  worker = std::make_shared<tray_Worker>();
   worker->moveToThread(thread_tray_populateOTP.get());
 //  connect(&tray_populateOTP, &QThread::finished, worker, &QObject::deleteLater); //FIXME test!
-  connect(thread_tray_populateOTP.get(), SIGNAL(started()), worker, SLOT(doWork()));
-  connect(worker, SIGNAL(resultReady()), this, SLOT(populateOTPPasswordMenu()));
+  connect(thread_tray_populateOTP.get(), SIGNAL(started()), worker.get(), SLOT(doWork()));
+  connect(worker.get(), SIGNAL(resultReady()), this, SLOT(populateOTPPasswordMenu()));
 
-  connect(worker, SIGNAL(resultReady()), main_window, SLOT(generateComboBoxEntrys()));
-  connect(worker, SIGNAL(progress(int)), this, SLOT(passOTPProgressFurther(int)));
-  connect(worker, SIGNAL(progress(int)), this, SLOT(showOTPProgressInTray(int)));
+  connect(worker.get(), SIGNAL(resultReady()), main_window, SLOT(generateComboBoxEntrys()));
+  connect(worker.get(), SIGNAL(progress(int)), this, SLOT(passOTPProgressFurther(int)));
+  connect(worker.get(), SIGNAL(progress(int)), this, SLOT(showOTPProgressInTray(int)));
 
   thread_tray_populateOTP->start();
 }
 
 void Tray::destroyThread() {
+  if(thread_tray_populateOTP == nullptr) return;
   thread_tray_populateOTP->quit();
   thread_tray_populateOTP->wait();
 }
@@ -400,7 +409,7 @@ void Tray::generateMenuForProDevice() {
     trayMenuSubConfigure = trayMenu->addMenu(tr("Configure"));
     trayMenuSubConfigure->setIcon(QIcon(":/images/settings.png"));
 
-    if (TRUE == libada::i()->isPasswordSafeAvailable())
+    if (libada::i()->isPasswordSafeAvailable())
       trayMenuSubConfigure->addAction(configureActionStick20);
     else
       trayMenuSubConfigure->addAction(configureAction);
@@ -425,124 +434,125 @@ void Tray::generateMenuForProDevice() {
 using nm = nitrokey::NitrokeyManager;
 
 void Tray::generateMenuForStorageDevice() {
-  int AddSeperator = FALSE;
+  int AddSeperator = false;
+  if (worker == nullptr) return;
+  QMutexLocker lock(&worker->mutex);
+
+  //FIXME run in separate thread
+//    auto status = nm::instance()->get_status_storage();
+//    const auto PasswordSafeEnabled = libada::i()->isPasswordSafeUnlocked();
+//    bool noUserPasswordRetryAvailable = 0 == libada::i()->getUserPasswordRetryCount();
+  auto status = worker->data.storage_status;
+  const auto PasswordSafeEnabled = worker->data.PWS_unlocked;
+  bool noUserPasswordRetryAvailable = worker->data.noUserPasswordRetryAvailable;
+
+
+  // Is Stick 2.0 online (SD + SC accessable?)
+  if (status.ActiveSD_CardID_u32 == 0)
   {
-    auto status = nm::instance()->get_status_storage();
+    trayMenu->addAction(Stick20ActionUpdateStickStatus);
+    return;
+  }
 
+  // Add special entries
+  if (status.StickKeysNotInitiated) {
+    trayMenu->addAction(Stick20ActionInitCryptedVolume);
+    AddSeperator = true;
+  }
 
-    if (status.ActiveSD_CardID_u32 == 0) // Is Stick 2.0 online (SD + SC
-      // accessable?)
-    {
-      trayMenu->addAction(Stick20ActionUpdateStickStatus);
-      return;
-    }
+  if (!status.StickKeysNotInitiated && !status.SDFillWithRandomChars_u8) {
+    trayMenu->addAction(Stick20ActionFillSDCardWithRandomChars);
+    AddSeperator = true;
+  }
 
-    // Add special entrys
-//    if (TRUE == StickNotInitated) {
-    if (TRUE == status.StickKeysNotInitiated) {
-      trayMenu->addAction(Stick20ActionInitCryptedVolume);
-      AddSeperator = TRUE;
-    }
-
-//    if (FALSE == StickNotInitated && TRUE == SdCardNotErased) {
-    if (!status.StickKeysNotInitiated && !status.SDFillWithRandomChars_u8) {
-      trayMenu->addAction(Stick20ActionFillSDCardWithRandomChars);
-      AddSeperator = TRUE;
-    }
-
-    if (TRUE == AddSeperator)
-      trayMenu->addSeparator();
-
-    generatePasswordMenu();
+  if (AddSeperator)
     trayMenu->addSeparator();
 
-    if (!status.StickKeysNotInitiated) {
-      //FIXME move to mainwindow
-      // Enable tab for password safe for stick 2
+  generatePasswordMenu();
+  trayMenu->addSeparator();
+
+  if (!status.StickKeysNotInitiated) {
+    //FIXME test for password safe availability, move to mainwindow
+    // Enable tab for password safe for stick 2
 //      if (-1 == ui->tabWidget->indexOf(ui->tab_3)) {
 //        ui->tabWidget->addTab(ui->tab_3, tr("Password Safe"));
 //      }
 
-      // Setup entrys for password safe
-      generateMenuPasswordSafe();
-    }
+    // Setup entrys for password safe
+    generateMenuPasswordSafe();
+  }
 
-//    if (FALSE == SdCardNotErased) {
-    if (status.SDFillWithRandomChars_u8) { //filled randomly
-      if (!status.VolumeActiceFlag_st.encrypted)
-        trayMenu->addAction(Stick20ActionEnableCryptedVolume);
-      else
-        trayMenu->addAction(Stick20ActionDisableCryptedVolume);
-
-      if (!status.VolumeActiceFlag_st.hidden)
-        trayMenu->addAction(Stick20ActionEnableHiddenVolume);
-      else
-        trayMenu->addAction(Stick20ActionDisableHiddenVolume);
-    }
-
-    //FIXME run in separate thread
-    const auto PasswordSafeEnabled = libada::i()->isPasswordSafeUnlocked();
-    if (FALSE != (status.VolumeActiceFlag_st.hidden || status.VolumeActiceFlag_st.encrypted || PasswordSafeEnabled))
-      trayMenu->addAction(LockDeviceAction);
-
-    trayMenuSubConfigure = trayMenu->addMenu(tr("Configure"));
-    trayMenuSubConfigure->setIcon(QIcon(":/images/settings.png"));
-    trayMenuSubConfigure->addAction(configureActionStick20);
-    trayMenuSubConfigure->addSeparator();
-
-    // Pin actions
-    trayMenuSubConfigure->addAction(Stick20ActionChangeUserPIN);
-    trayMenuSubConfigure->addAction(Stick20ActionChangeAdminPIN);
-    trayMenuSubConfigure->addAction(Stick20ActionChangeUpdatePIN);
-    trayMenuSubConfigure->addSeparator();
-
-    // Storage actions
-    auto read_write_active = status.ReadWriteFlagUncryptedVolume_u8 == 0;
-    if (read_write_active)
-      // Set readonly active
-      trayMenuSubConfigure->addAction(Stick20ActionSetReadonlyUncryptedVolume);
+  if (status.SDFillWithRandomChars_u8) { // == filled randomly
+    if (!status.VolumeActiceFlag_st.encrypted)
+      trayMenu->addAction(Stick20ActionEnableCryptedVolume);
     else
-      // Set RW active
-      trayMenuSubConfigure->addAction(Stick20ActionSetReadWriteUncryptedVolume);
+      trayMenu->addAction(Stick20ActionDisableCryptedVolume);
 
-//    if (FALSE == SdCardNotErased)
-    if (status.SDFillWithRandomChars_u8)
-      trayMenuSubConfigure->addAction(Stick20ActionSetupHiddenVolume);
+    if (!status.VolumeActiceFlag_st.hidden)
+      trayMenu->addAction(Stick20ActionEnableHiddenVolume);
+    else
+      trayMenu->addAction(Stick20ActionDisableHiddenVolume);
+  }
 
-    trayMenuSubConfigure->addAction(Stick20ActionDestroyCryptedVolume);
-    trayMenuSubConfigure->addSeparator();
 
-    // Other actions
-//    if (TRUE == LockHardware) //FIXME
+  if (FALSE != (status.VolumeActiceFlag_st.hidden || status.VolumeActiceFlag_st.encrypted || PasswordSafeEnabled))
+    trayMenu->addAction(LockDeviceAction);
+
+  trayMenuSubConfigure = trayMenu->addMenu(tr("Configure"));
+  trayMenuSubConfigure->setIcon(QIcon(":/images/settings.png"));
+  trayMenuSubConfigure->addAction(configureActionStick20);
+  trayMenuSubConfigure->addSeparator();
+
+  // Pin actions
+  trayMenuSubConfigure->addAction(Stick20ActionChangeUserPIN);
+  trayMenuSubConfigure->addAction(Stick20ActionChangeAdminPIN);
+  trayMenuSubConfigure->addAction(Stick20ActionChangeUpdatePIN);
+  trayMenuSubConfigure->addSeparator();
+
+  // Storage actions
+  auto read_write_active = status.ReadWriteFlagUncryptedVolume_u8 == 0;
+  if (read_write_active)
+    // Set readonly active
+    trayMenuSubConfigure->addAction(Stick20ActionSetReadonlyUncryptedVolume);
+  else
+    // Set RW active
+    trayMenuSubConfigure->addAction(Stick20ActionSetReadWriteUncryptedVolume);
+
+  if (status.SDFillWithRandomChars_u8)
+    trayMenuSubConfigure->addAction(Stick20ActionSetupHiddenVolume);
+
+  trayMenuSubConfigure->addAction(Stick20ActionDestroyCryptedVolume);
+  trayMenuSubConfigure->addSeparator();
+
+  // Other actions
+//    if (TRUE == LockHardware) //FIXME allow locking hardware (with CLI switch)
 //      trayMenuSubConfigure->addAction(Stick20ActionLockStickHardware);
 
 
-    trayMenuSubConfigure->addAction(Stick20ActionEnableFirmwareUpdate);
-    trayMenuSubConfigure->addAction(Stick20ActionExportFirmwareToFile);
+  trayMenuSubConfigure->addAction(Stick20ActionEnableFirmwareUpdate);
+  trayMenuSubConfigure->addAction(Stick20ActionExportFirmwareToFile);
 
-    trayMenuSubConfigure->addSeparator();
+  trayMenuSubConfigure->addSeparator();
 
-    if (TRUE == ExtendedConfigActive) {
-      trayMenuSubSpecialConfigure = trayMenuSubConfigure->addMenu(tr("Special Configure"));
-      trayMenuSubSpecialConfigure->addAction(Stick20ActionFillSDCardWithRandomChars);
+  if (TRUE == ExtendedConfigActive) {
+    trayMenuSubSpecialConfigure = trayMenuSubConfigure->addMenu(tr("Special Configure"));
+    trayMenuSubSpecialConfigure->addAction(Stick20ActionFillSDCardWithRandomChars);
 
-      if (status.NewSDCardFound_u8 && !status.SDFillWithRandomChars_u8)
-        trayMenuSubSpecialConfigure->addAction(Stick20ActionClearNewSDCardFound);
-    }
+    if (status.NewSDCardFound_u8 && !status.SDFillWithRandomChars_u8)
+      trayMenuSubSpecialConfigure->addAction(Stick20ActionClearNewSDCardFound);
+  }
 
-    // Enable "reset user PIN" ?
-    if (0 == libada::i()->getUserPasswordRetryCount()) {
-      trayMenu->addSeparator();
-      trayMenu->addAction(Stick20ActionResetUserPassword);
-    }
+  // Enable "reset user PIN" ?
+  if (noUserPasswordRetryAvailable) {
+    trayMenu->addSeparator();
+    trayMenu->addAction(Stick20ActionResetUserPassword);
+  }
 
 //    // Add debug window ?
 //    if (TRUE == DebugWindowActive) {
 //      trayMenu->addSeparator();
 //      trayMenu->addAction(Stick20ActionDebugAction);
 //    }
-
-  }
 }
 
 int Tray::UpdateDynamicMenuEntrys(void) {
