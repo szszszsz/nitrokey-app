@@ -136,9 +136,6 @@ void StorageActions::startStick20DisableCryptedVolume() {
       }
       catch (CommandFailedException &e){
         data["error"] = e.last_command_status;
-        if (e.reason_wrong_password()){
-          data["wrong_password"] = true;
-        }
       }
       catch (DeviceCommunicationException &e){
         data["error"] = -1;
