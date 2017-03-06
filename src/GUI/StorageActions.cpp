@@ -75,7 +75,7 @@ void StorageActions::startStick20EnableCryptedVolume() {
     const auto s = dialog.getPassword();
 
     ThreadWorker *tw = new ThreadWorker(
-    [&s]() -> Data {
+    [s]() -> Data { // FIXME make s shared_ptr to delete after use //or secure string
       Data data;
       data["error"] = 0;
 
