@@ -34,6 +34,9 @@ class DebugDialog : public QDialog {
 
   void updateText(void);
 
+  public slots:
+    void on_log_message(QString message);
+
 private slots:
   void UpdateDebugText();
 

@@ -266,3 +266,7 @@ void DebugDialog::on_pushButton_clicked() {
 //    DebugTextHasChanged_Stick20 = FALSE;
 //  }
 }
+
+void DebugDialog::on_log_message(QString message) {
+  ui->TextGUI->insertPlainText(message);
+}

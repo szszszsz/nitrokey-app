@@ -48,6 +48,7 @@ int main(int argc, char *argv[]) {
   issue_43_workaround();
 
   QApplication a(argc, argv);
+  qDebug() << a.arguments();
   configureApplicationName();
   QCommandLineParser parser;
   auto shouldQuit = configureParser(a, parser);
@@ -104,8 +105,17 @@ int main(int argc, char *argv[]) {
   a.setQuitOnLastWindowClosed(false);
 
 
-
   MainWindow w;
+  if (parser.isSet("admin")){
+    w.enable_admin_commands();
+  }
+  auto debug_file_option_name = "debug-file";
+  if (parser.isSet(debug_file_option_name) && !parser.value(debug_file_option_name).isEmpty()){
+    w.set_debug_file(parser.value(debug_file_option_name));
+  }
+  if (parser.isSet("debug-window")){
+    w.set_debug_window();
+  }
   if (parser.isSet("delay")){
     auto delay_in_ms = parser.value("delay").toInt();
     w.set_commands_delay(delay_in_ms);
@@ -120,7 +130,9 @@ int main(int argc, char *argv[]) {
     retcode = a.exec();
   }
   catch (std::exception &e){
-    csApplet()->warningBox(QApplication::tr("Critical error encountered. Please restart application.\nMessage: ") + e.what());
+    auto message = QApplication::tr("Critical error encountered. Please restart application.\nMessage: ") + e.what();
+    csApplet()->warningBox(message);
+    qDebug() << message;
   }
 #else
   retcode = a.exec();
@@ -218,19 +230,25 @@ bool configureParser(const QApplication &a, QCommandLineParser &parser) {
       QCoreApplication::translate("main", "Nitrokey App - Manage your Nitrokey sticks"));
   parser.addHelpOption();
   parser.addVersionOption();
+  parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsLongOptions);
 
+  //keep in sync with data/bash-autocomplete/nitrokey-app
   parser.addOptions({
       {{"d", "debug"},
-          QCoreApplication::translate("main", "Enable debug options")},
+          QCoreApplication::translate("main", "Enable debug messages")},
+      {{"df","debug-file"},
+          QCoreApplication::translate("main", "Save debug log to file with name <log-file-name>"),
+          "log-file-name"},
+      {{"dw","debug-window"},
+          QCoreApplication::translate("main", "Save debug log to App's window") },
       {{"s", "delay"},
-          QCoreApplication::translate("main", "Set delay between commands sent to device (in ms)"),
-          "20" },
+          QCoreApplication::translate("main", "Set delay between commands sent to device (in ms) to <delay>"), "delay" },
       {"version-more",
           QCoreApplication::translate("main", "Show additional information about binary")},
       {{"a", "admin"},
           QCoreApplication::translate("main", "Enable extra administrative functions")},
-      {"lock-hardware",
-          QCoreApplication::translate("main", "Show hardware lock action in tray menu")},
+//      {"lock-hardware", //TODO add functionality
+//          QCoreApplication::translate("main", "Show hardware lock action in tray menu")},
       {"language-list",
           QCoreApplication::translate("main", "List available languages")},
       {{"l", "language"},
