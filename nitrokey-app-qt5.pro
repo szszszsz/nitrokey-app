@@ -2,7 +2,7 @@
 
 message("CONFIG: $${CONFIG}")
 
-CONFIG   += qt c++14
+CONFIG   += qt c++14 debug
 QT       += core gui
 
 target.path = /usr/local/bin
@@ -15,8 +15,12 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 sources.files = qss
 
+include(libnitrokey/libnitrokey.pro)
+
 TARGET = nitrokey-app
 TEMPLATE = app
+
+
 
 ROOTDIR=$$PWD
 UIDIR=$${ROOTDIR}/src/ui
@@ -100,7 +104,7 @@ INCLUDEPATH +=  $${SRCDIR} \
                 $${SRCUIDIR} \
                 $${UTILSDIR} \
                 $${COREDIR} \
-		        $${ROOTDIR}/3rdparty/cppcodec \
+                $${ROOTDIR}/3rdparty/cppcodec \
                 $${GUIDIR}
 
 LIBNITROKEY= -lnitrokey-static
@@ -120,11 +124,11 @@ unix:!macx{
 
 # TODO make second binary - debug - linked with libnitrokey-log
 win32 {
-    INCLUDEPATH += $${ROOTDIR}/libnitrokey/hidapi/hidapi/
+#    INCLUDEPATH += $${ROOTDIR}/libnitrokey/hidapi/hidapi/
     #TODO add hidapi sources to libnitrokey instead
-    SOURCES += $${ROOTDIR}/libnitrokey/hidapi/windows/hid.c
-    LIBS= -lsetupapi -lhid
-    LIBS += $${LIBNITROKEY} -L$${ROOTDIR}/libnitrokey/build
+#    SOURCES += $${ROOTDIR}/libnitrokey/hidapi/windows/hid.c
+#    LIBS= -lsetupapi -lhid
+#    LIBS += $${LIBNITROKEY} -L$${ROOTDIR}/libnitrokey/build
     RC_FILE=appico.rc
 }
 
