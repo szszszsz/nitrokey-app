@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
 
 //  csApplet()->setParent(&w);
   int retcode = -1;
-#ifndef _DEBUG
+#ifdef _DEBUG
   try{
     retcode = a.exec();
   }
