@@ -238,35 +238,55 @@ void MainWindow::closeEvent(QCloseEvent *event) {
   event->ignore();
 }
 
-void MainWindow::generateComboBoxEntrys() {
-  //FIXME run in separate thread
-  int i;
+#include <QtConcurrent>
+#include <QFutureWatcher>
 
+void MainWindow::generateComboBoxEntrys() {
   ui->slotComboBox->clear();
 
-  for (i = 0; i < TOTP_SlotCount; i++) {
-    auto slotName = libada::i()->getTOTPSlotName(i);
-    if (slotName.empty())
+  QVector<QString> slots_TOTP(TOTP_SlotCount);
+  QVector<QString> slots_HOTP(HOTP_SlotCount);
+
+  QFuture< void > future = QtConcurrent::run([this, &slots_TOTP, &slots_HOTP](){
+    for (int i = 0; i < TOTP_SlotCount; i++) {
+      auto slotName = libada::i()->getTOTPSlotName(i);
+      slots_TOTP[i] = QString::fromStdString(slotName);
+    }
+    for (int i = 0; i < HOTP_SlotCount; i++) {
+      auto slotName = libada::i()->getHOTPSlotName(i);
+      slots_HOTP[i] = QString::fromStdString(slotName);
+    }
+  });
+
+  QFutureWatcher <void> watcher;
+  watcher.setFuture(future);
+  QEventLoop loop;
+  connect(&watcher, SIGNAL(finished()), &loop, SLOT(quit()));
+  loop.exec();
+
+  for (int i = 0; i < TOTP_SlotCount; i++) {
+    auto slotName = slots_TOTP[i];
+    if (slotName.isEmpty())
       ui->slotComboBox->addItem(QString(tr("TOTP slot ")).append(QString::number(i + 1, 10)));
     else
       ui->slotComboBox->addItem(QString(tr("TOTP slot "))
                                     .append(QString::number(i + 1, 10))
                                     .append(" [")
-                                    .append(QString::fromStdString(slotName))
+                                    .append(slotName)
                                     .append("]"));
   }
 
   ui->slotComboBox->insertSeparator(TOTP_SlotCount + 1);
 
-  for (i = 0; i < HOTP_SlotCount; i++) {
-    auto slotName = libada::i()->getHOTPSlotName(i);
-    if (slotName.empty())
+  for (int i = 0; i < HOTP_SlotCount; i++) {
+    auto slotName = slots_HOTP[i];
+    if (slotName.isEmpty())
       ui->slotComboBox->addItem(QString(tr("HOTP slot ")).append(QString::number(i + 1, 10)));
     else
       ui->slotComboBox->addItem(QString(tr("HOTP slot "))
                                     .append(QString::number(i + 1, 10))
                                     .append(" [")
-                                    .append(QString::fromStdString(slotName))
+                                    .append(slotName)
                                     .append("]"));
   }
 

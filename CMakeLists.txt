@@ -44,7 +44,9 @@ ENDIF()
 FIND_PACKAGE(Qt5Core)
 FIND_PACKAGE(Qt5Gui)
 FIND_PACKAGE(Qt5Widgets)
+FIND_PACKAGE(Qt5Concurrent)
 
+include_directories(${Qt5Concurrent_INCLUDE_DIRS})
 
 # add git version info
 IF(ADD_GIT_INFO)
